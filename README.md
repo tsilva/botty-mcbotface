@@ -1,7 +1,7 @@
 # 🤖 Botty McBotface
 
 <p align="center">
-  <img src="assets/logo.png" alt="Botty McBotface Logo" width="400"/>
+  <img src="logo.png" alt="Botty McBotface Logo" width="400"/>
 </p>
 
 > 💬 Just what you needed, another AI chatbot trying to remember things and use tools without breaking everything 🤦
