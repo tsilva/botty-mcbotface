@@ -39,9 +39,15 @@ client = anthropic.Anthropic()
 # TODO: this is a hack, if I don't fix this, multiple chats won't be supported
 claude_history = []
 
+def get_memory_string():
+    return "\n".join([f"{index}: {value}" for index, value in enumerate(list(system_memory))]).strip()
+
+def get_memory_markdown():
+    return "\n".join([f"{index}. {value}" for index, value in enumerate(list(system_memory))]).strip()
+
 def prompt_claude():
     # Build the system prompt including all memories the user asked to remember
-    system_prompt_memory_str = "\n".join([f"{index}: {value}" for index, value in enumerate(list(system_memory))]).strip()
+    system_prompt_memory_str = get_memory_string()
     system_prompt_text = load_system_prompt()
     if system_prompt_memory_str: system_prompt_text += f"\n\nHere are the memories the user asked you to remember:\n{system_prompt_memory_str}"
     
@@ -78,7 +84,7 @@ def chatbot(message, history):
                     "role": "assistant",
                     "content": content.text
                 }
-                yield _message
+                yield _message, get_memory_markdown()
                 
                 # Store in claude history
                 claude_history.append({**_message})
@@ -93,7 +99,7 @@ def chatbot(message, history):
                     content="Processing...",
                     metadata={"title": f"🛠️ Calling {tool_name}", "id": 0, "status": "pending"}
                 )
-                yield response
+                yield response, get_memory_markdown()
 
                 # Call the tool
                 print(f"Calling {tool_name}({json.dumps(tool_input, indent=2)})")
@@ -105,7 +111,7 @@ def chatbot(message, history):
                 response.metadata["title"] = f"🛠️ Called {tool_name}"
                 response.metadata["status"] = "done"
                 response.metadata["duration"] = time.time() - start_time
-                yield response
+                yield response, get_memory_markdown()
                 
                 # Store in claude history
                 claude_history.extend([
@@ -137,19 +143,23 @@ def chatbot(message, history):
                 raise Exception(f"Unknown content type {type(content)}")
 
 with gr.Blocks() as demo:
-    #system_prompt = gr.Textbox("You are helpful AI.", label="System Prompt")
-    #slider = gr.Slider(10, 100, render=False)
-
-    gr.ChatInterface(
-        fn=chatbot,
-        type="messages",
-        title="Botty McBotface",
-        description="Botty McBotFace is really just another chatbot. Don't bother.",
-        #examples=["Hello!", "What's the weather like?", "Tell me a joke"],
-        #additional_inputs=[system_prompt, slider],
-        #retry_btn=True,
-        #undo_btn=True,
-        #clear_btn=True,
-    )
+    memory = gr.Markdown(render=False)
+    with gr.Row():
+        with gr.Column():
+            gr.Markdown("<center><h1>Botty McBotface</h1></center>")
+            gr.ChatInterface(
+                fn=chatbot,
+                type="messages",
+                description="Botty McBotFace is really just another chatbot.",
+                #examples=["Hello!", "What's the weather like?", "Tell me a joke"],
+                #additional_inputs=[system_prompt, slider],
+                #retry_btn=True,
+                #undo_btn=True,
+                #clear_btn=True,
+                additional_outputs=[memory],
+            )
+        with gr.Column():
+            gr.Markdown("<center><h1>Memory</h1></center>")
+            memory.render()
 
 demo.launch()
