@@ -144,21 +144,16 @@ def chatbot(message, history):
 
 with gr.Blocks() as demo:
     memory = gr.Markdown(render=False)
-    with gr.Row():
-        with gr.Column():
+    with gr.Row(equal_height=True):
+        with gr.Column(scale=80, min_width=600):
             gr.Markdown("<center><h1>Botty McBotface</h1></center>")
             gr.ChatInterface(
                 fn=chatbot,
                 type="messages",
                 description="Botty McBotFace is really just another chatbot.",
-                #examples=["Hello!", "What's the weather like?", "Tell me a joke"],
-                #additional_inputs=[system_prompt, slider],
-                #retry_btn=True,
-                #undo_btn=True,
-                #clear_btn=True,
                 additional_outputs=[memory],
             )
-        with gr.Column():
+        with gr.Column(scale=20, min_width=150, variant="compact"):
             gr.Markdown("<center><h1>Memory</h1></center>")
             memory.render()
 

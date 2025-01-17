@@ -33,13 +33,21 @@
    ```sh
    conda activate botty-mcbotface
    ```
+
 ## 🚀 Usage
 
 1. Run the chatbot:
    ```sh
    python main.py
    ```
-2. Interact with the chatbot through the GUI.
+
+2. For development with auto-reload:
+   ```sh
+   gradio main.py
+   ```
+   This will automatically restart the app when you make changes to the source files.
+
+3. Interact with the chatbot through the GUI.
 
 ## 📄 License
 
