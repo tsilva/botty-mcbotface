@@ -1,18 +1,12 @@
 # https://docs.anthropic.com/en/docs/build-with-claude/tool-use
-
-# TODO: ask what to improve
-# TODO: customize UI
-# TODO: host in spaces
-# TODO: add examples
-# TODO: add multimodality
-# TODO: gr.Image, gr.Video, gr.Audio, gr.File, gr.HTML, gr.Gallery, gr.Plot, gr.Map
-# TODO: https://www.gradio.app/guides/plot-component-for-maps
-# TODO: bug follow up user messages not recorded in history
+# https://www.gradio.app/guides/plot-component-for-maps
+# TODO: ask LLM what to improve
+# TODO: improve layout
+# TODO: add starter examples
+# TODO: add multimodality (input/ooutput): gr.Image, gr.Video, gr.Audio, gr.File, gr.HTML, gr.Gallery, gr.Plot, gr.Map
 # TODO: add streaming support
-#
-# TODO: trim down data from search results
-# TODO: new search is not updating location
-# TODO: not all memories are being saved
+# TODO: trim down data from nearby places results (filling up context too much)
+# TODO: host in spaces
 
 from dotenv import load_dotenv
 load_dotenv()
