@@ -7,13 +7,11 @@
 # TODO: add multimodality
 # TODO: gr.Image, gr.Video, gr.Audio, gr.File, gr.HTML, gr.Gallery, gr.Plot, gr.Map
 # TODO: https://www.gradio.app/guides/plot-component-for-maps
-# TODO: trim down data from search results
 # TODO: bug follow up user messages not recorded in history
 # TODO: add streaming support
-
+#
 # TODO: add support for when tools fail
-
-# TODO: add tool result cache
+# TODO: trim down data from search results
 # TODO: new search is not updating location
 # TODO: not all memories are being saved
 
@@ -28,24 +26,26 @@ from gradio import ChatMessage
 
 from tools import TOOLS_SPECS, TOOLS_FUNCTIONS
 
-MODEL_ID = "claude-3-5-sonnet-20241022"
-MAX_TOKENS = 1024
-
 system_memory = []
-APP_CONTEXT = {
+
+app_context = {
+    "model_id" : "claude-3-5-sonnet-20241022",
+    "max_tokens" : 1024,
     "system_memory" : system_memory,
     "system_memory_max_size" : 5
 }
 
-def load_system_prompt():
-    with open('prompts/system.txt', 'r') as f:
-        return f.read().strip()
-
-client = anthropic.Anthropic()
+tools_cache = {}
 
 # TODO: this is a hack, if I don't fix this, multiple chats won't be supported
 claude_history = []
 
+client = anthropic.Anthropic()
+
+def load_system_prompt():
+    with open('prompts/system.txt', 'r') as f:
+        return f.read().strip()
+    
 def get_memory_string():
     return "\n".join([f"{index}: {value}" for index, value in enumerate(list(system_memory))]).strip()
 
@@ -59,9 +59,11 @@ def prompt_claude():
     if system_prompt_memory_str: system_prompt_text += f"\n\nHere are the memories the user asked you to remember:\n{system_prompt_memory_str}"
     
     # Send message to Claude
+    model_id = app_context["model_id"]
+    max_tokens = app_context["max_tokens"]
     message = client.messages.create(
-        model=MODEL_ID,
-        max_tokens=MAX_TOKENS,
+        model=model_id,
+        max_tokens=max_tokens,
         temperature=0.0, 
         tools=TOOLS_SPECS.values(),
         system=[{
@@ -72,6 +74,11 @@ def prompt_claude():
         messages=claude_history
     )
     return message
+
+def get_tool_generator(cached_yield, tool_function, app_context, tool_input):
+    """Helper function to either yield cached result or run tool function"""
+    if cached_yield: yield cached_yield
+    else: yield from tool_function(app_context, **tool_input)
 
 def chatbot(message, history):
     # Store in claude history
@@ -105,6 +112,8 @@ def chatbot(message, history):
                 tool_id = content.id
                 tool_name = content.name
                 tool_input = content.input
+                tool_key = f"{tool_name}_{json.dumps(tool_input)}" # TODO: sort input
+                tool_cached_yield = tools_cache.get(tool_key)
 
                 # Say that we're calling the tool
                 message = ChatMessage(
@@ -123,7 +132,7 @@ def chatbot(message, history):
                 tool_result = None
                 tool_statuses = []
                 tool_function = TOOLS_FUNCTIONS[tool_name]
-                tool_generator = tool_function(APP_CONTEXT, **tool_input)
+                tool_generator = get_tool_generator(tool_cached_yield, tool_function, app_context, tool_input)
                 start_time = time.time()
                 for tool_yield in tool_generator:
                     # Update tool status
@@ -140,7 +149,10 @@ def chatbot(message, history):
                         message.metadata["status"] = "done"
                         message.metadata["duration"] = duration
                         message.metadata["title"] = f"🛠️ Used tool `{tool_name}`"
-                        
+
+                        # Cache the tool result
+                        tools_cache[tool_key] = tool_yield
+
                     # Update the chat history
                     yield messages, get_memory_markdown()
 
