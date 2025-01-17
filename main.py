@@ -10,7 +10,6 @@
 # TODO: bug follow up user messages not recorded in history
 # TODO: add streaming support
 #
-# TODO: add support for when tools fail
 # TODO: trim down data from search results
 # TODO: new search is not updating location
 # TODO: not all memories are being saved
@@ -133,28 +132,33 @@ def chatbot(message, history):
                 tool_statuses = []
                 tool_function = TOOLS_FUNCTIONS[tool_name]
                 tool_generator = get_tool_generator(tool_cached_yield, tool_function, app_context, tool_input)
+                tool_error = False
                 start_time = time.time()
-                for tool_yield in tool_generator:
-                    # Update tool status
-                    status = tool_yield.get("status")
-                    status_type = tool_yield.get("status_type", "current")
-                    if status_type == "step": tool_statuses.append(status)
-                    else: tool_statuses = tool_statuses[:-1] + [status]
-                    message.content = "\n".join(tool_statuses)
+                try:
+                    for tool_yield in tool_generator:
+                        # Update tool status
+                        status = tool_yield.get("status")
+                        status_type = tool_yield.get("status_type", "current")
+                        if status_type == "step": tool_statuses.append(status)
+                        else: tool_statuses = tool_statuses[:-1] + [status]
+                        message.content = "\n".join(tool_statuses)
 
-                    # In case the tool is done, mark it as done
-                    if "result" in tool_yield:
-                        duration = time.time() - start_time
-                        tool_result = tool_yield["result"]
-                        message.metadata["status"] = "done"
-                        message.metadata["duration"] = duration
-                        message.metadata["title"] = f"🛠️ Used tool `{tool_name}`"
+                        # In case the tool is done, mark it as done
+                        if "result" in tool_yield:
+                            tool_result = tool_yield["result"]
+                            tools_cache[tool_key] = tool_yield
+                            duration = time.time() - start_time
+                            message.metadata["status"] = "done"
+                            message.metadata["duration"] = duration
+                            message.metadata["title"] = f"🛠️ Used tool `{tool_name}`"
 
-                        # Cache the tool result
-                        tools_cache[tool_key] = tool_yield
-
-                    # Update the chat history
-                    yield messages, get_memory_markdown()
+                        # Update the chat history
+                        yield messages, get_memory_markdown()
+                except Exception as tool_exception:
+                    tool_error = str(tool_exception)
+                    message.metadata["status"] = "done"
+                    message.content = tool_error
+                    message.metadata["title"] = f"💥 Tool `{tool_name}` failed"
 
                 # Store final result in claude history
                 claude_history.extend([
@@ -175,7 +179,8 @@ def chatbot(message, history):
                             {
                                 "type": "tool_result",
                                 "tool_use_id": tool_id,
-                                "content": str(tool_result)
+                                "content": str(tool_error) if tool_error else str(tool_result),
+                                "is_error" : bool(tool_error)
                             }
                         ]
                     }
