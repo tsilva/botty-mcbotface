@@ -10,6 +10,9 @@
 # TODO: gr.Image, gr.Video, gr.Audio, gr.File, gr.HTML, gr.Gallery, gr.Plot, gr.Map
 # TODO: improve system prompt, make LLM use more markdown formatting and emojis
 # TODO: https://www.gradio.app/guides/plot-component-for-maps
+# TODO: trim down data from search results
+# TODO: bug follow up user messages not recorded in history
+# TODO: not all memories are being saved
 
 from dotenv import load_dotenv
 load_dotenv()
