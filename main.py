@@ -10,6 +10,7 @@
 # TODO: gr.Image, gr.Video, gr.Audio, gr.File, gr.HTML, gr.Gallery, gr.Plot, gr.Map
 # TODO: https://www.gradio.app/guides/plot-component-for-maps
 
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -18,6 +19,7 @@ import time
 import json
 import anthropic
 import gradio as gr
+from gradio import ChatMessage
 
 from tools import TOOLS_SPECS, TOOLS_FUNCTIONS
 
@@ -84,7 +86,13 @@ def chatbot(message, history):
                     "role": "assistant",
                     "content": content.text
                 }
-                yield _message, get_memory_markdown()
+                history.append(
+                    ChatMessage(
+                        role=_message["role"],
+                        content=_message["content"]
+                    )
+                )
+                yield history, get_memory_markdown()
                 
                 # Store in claude history
                 claude_history.append({**_message})
@@ -94,26 +102,34 @@ def chatbot(message, history):
                 tool_input = content.input
 
                 # Say that we're calling the tool
-                start_time = time.time()
-                response = gr.ChatMessage(
+                start_time = time.time() # TODO: add timer
+                response = ChatMessage(
                     content="Processing...",
                     metadata={"title": f"🛠️ Calling {tool_name}", "id": 0, "status": "pending"}
                 )
-                yield response, get_memory_markdown()
+                history.append(response)
+                yield history, get_memory_markdown()
 
                 # Call the tool
                 print(f"Calling {tool_name}({json.dumps(tool_input, indent=2)})")
                 tool_function = TOOLS_FUNCTIONS[tool_name]
-                tool_result = tool_function(EXTERNALS, **tool_input)
-
-                # Say that we're done calling the tool
-                response.content = str(tool_result) if tool_result else "Done."
-                response.metadata["title"] = f"🛠️ Called {tool_name}"
-                response.metadata["status"] = "done"
-                response.metadata["duration"] = time.time() - start_time
-                yield response, get_memory_markdown()
+                tool_generator = tool_function(EXTERNALS, **tool_input)
                 
-                # Store in claude history
+                # Process tool status updates
+                tool_result = None
+                tool_statuses = []
+                for status_msg, is_final in tool_generator:
+                    if is_final:
+                        tool_statuses.append("✅ Finished")
+                        tool_result = status_msg
+                        response.metadata["title"] = f"✅ Called {tool_name}"
+                        response.metadata["status"] = "done"
+                    else:
+                        tool_statuses.append(status_msg)
+                    response.content = "\n".join(tool_statuses)
+                    yield history, get_memory_markdown()
+
+                # Store final result in claude history
                 claude_history.extend([
                     {
                         "role": "assistant",

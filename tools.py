@@ -26,13 +26,13 @@ def tool_save_memory(external, memory_data: str, index: int = None):
 
     if index is not None and index < len(system_memory):
         system_memory[index] = memory_data
-        print(f"Memory updated {index}: ", memory_data)
-        print(json.dumps(system_memory))
+        yield (f"Updated memory '{index}': '{memory_data}", False)
     else:
         system_memory.append(memory_data)
         system_memory[:] = system_memory[:system_memory_max_size]
-        print("Memory added: ", memory_data)
-        print(json.dumps(system_memory))
+        yield (f"Added new memory: '{memory_data}", False)
+        
+    yield (None, True)
 
 
 TOOL_DELETE_MEMORY = {
@@ -52,11 +52,12 @@ TOOL_DELETE_MEMORY = {
 }
 def tool_delete_memory(external, memory_index: int):
     system_memory = external["system_memory"]
-
     memory_data = system_memory[memory_index]
     system_memory.pop(memory_index)
-    print("Memory deleted: ", memory_data)
-    print(json.dumps(system_memory))
+    
+    yield (f"Deleted memory: '{memory_data}", False)
+    
+    yield (None, True)
 
 
 TOOL_PLACES_NEARBY = {
@@ -164,9 +165,11 @@ def tool_places_nearby(
     page_token: str = None
 ) -> dict:
     import googlemaps
+    
+    yield ("⏳ Searching for places...", False)
 
     gmaps = googlemaps.Client(key=os.getenv('GOOGLE_MAPS_API_KEY'))
-    
+
     # Convert location dict to tuple
     loc = (location['latitude'], location['longitude'])
     
@@ -194,56 +197,12 @@ def tool_places_nearby(
     params = {k: v for k, v in params.items() if v is not None}
     
     # Make the API call
-    places_result = gmaps.places_nearby(**params)
+    result = gmaps.places_nearby(**params)
+    locations = result.get('results', [])
     
-    print(json.dumps(places_result, indent=2))
-    #results = places_result.get('results', [])
+    yield (f"✅ Found {len(locations)} locations", False)
 
-    return places_result.get('results', [])
-
-TOOL_WEATHER = {
-    "name": "tool_weather",
-    "description": "Get detailed weather forecast for a specific location and date range",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "location": {
-                "type": "object",
-                "properties": {
-                    "city": {"type": "string", "description": "City name"},
-                    "country": {"type": "string", "description": "Country name"},
-                    "coordinates": {
-                        "type": "object",
-                        "properties": {
-                            "latitude": {"type": "number"},
-                            "longitude": {"type": "number"}
-                        }
-                    }
-                },
-                "required": ["city"]
-            },
-            "date_range": {
-                "type": "object",
-                "properties": {
-                    "start_date": {"type": "string", "format": "date"},
-                    "end_date": {"type": "string", "format": "date"}
-                },
-                "required": ["start_date"]
-            }
-        },
-        "required": ["location", "date_range"]
-    }
-}
-def tool_weather(external, location: dict, date_range: dict) -> dict:
-    return {
-        "location": location["city"],
-        "date": date_range["start_date"],
-        "forecast": {
-            "temperature": 22,
-            "conditions": "Sunny",
-            "confidence": 0.95
-        }
-    }
+    yield (locations, True)
 
 
 TOOL_CALCULATOR = {
@@ -298,19 +257,21 @@ TOOL_GEOCODE = {
 def tool_geocode(external, address: str) -> dict:
     import googlemaps
     
+    yield (f"⏳ Geocoding '{address}'...", False)
+    
     gmaps = googlemaps.Client(key=os.getenv('GOOGLE_MAPS_API_KEY'))
     
     result = gmaps.geocode(address)
-    if not result:
-        return {"error": "No results found for this address"}
-        
-    # Get the first result's location
     location = result[0]['geometry']['location']
+    latitude = location["lat"]
+    longitude = location["lng"]
+
+    yield (f"✅ Geocoded '{address}' to ({latitude},{longitude})...", False)
     
-    return {
-        "latitude": location['lat'],
-        "longitude": location['lng']
-    }
+    yield ({
+        "latitude": latitude,
+        "longitude": longitude
+    }, True)
 
 
 TOOL_PLACE_DETAILS = {
@@ -372,7 +333,6 @@ def tool_place_details(external, place_id: str, language: str = None, fields: li
 TOOLS = (
     (TOOL_SAVE_MEMORY, tool_save_memory),
     (TOOL_DELETE_MEMORY, tool_delete_memory),
-    (TOOL_WEATHER, tool_weather),
     (TOOL_CALCULATOR, tool_calculator),
     (TOOL_PLACES_NEARBY, tool_places_nearby),
     (TOOL_GEOCODE, tool_geocode),
