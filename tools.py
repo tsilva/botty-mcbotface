@@ -1,5 +1,4 @@
 import os
-import json
 
 TOOL_SAVE_MEMORY = {
     "name" : "tool_save_memory",
@@ -20,19 +19,22 @@ TOOL_SAVE_MEMORY = {
         "required": ["memory_data"]
     }
 }
-def tool_save_memory(external, memory_data: str, index: int = None):
-    system_memory = external["system_memory"]
-    system_memory_max_size = external["system_memory_max_size"]
+def tool_save_memory(app_context, memory_data: str, index: int = None):
+    system_memory = app_context["system_memory"]
+    system_memory_max_size = app_context["system_memory_max_size"]
 
     if index is not None and index < len(system_memory):
         system_memory[index] = memory_data
-        yield (f"Updated memory '{index}': '{memory_data}", False)
+        status = f"✅ Updated memory `{index}`: `{memory_data}`."
     else:
         system_memory.append(memory_data)
         system_memory[:] = system_memory[:system_memory_max_size]
-        yield (f"Added new memory: '{memory_data}", False)
+        status = f"✅ Added new memory: `{memory_data}`."
         
-    yield (None, True)
+    yield {
+        "status" : status,
+        "result" : None
+    }
 
 
 TOOL_DELETE_MEMORY = {
@@ -50,14 +52,15 @@ TOOL_DELETE_MEMORY = {
     }
 
 }
-def tool_delete_memory(external, memory_index: int):
-    system_memory = external["system_memory"]
+def tool_delete_memory(app_context, memory_index: int):
+    system_memory = app_context["system_memory"]
     memory_data = system_memory[memory_index]
     system_memory.pop(memory_index)
-    
-    yield (f"Deleted memory: '{memory_data}", False)
-    
-    yield (None, True)
+
+    yield {
+        "status" : f"✅ Deleted memory: `{memory_data}`.",
+        "result" : None
+    }
 
 
 TOOL_PLACES_NEARBY = {
@@ -151,7 +154,7 @@ TOOL_PLACES_NEARBY = {
     }
 }
 def tool_places_nearby(
-    external,
+    app_context,
     location: dict,
     radius: int = None,
     keyword: str = None,
@@ -166,7 +169,7 @@ def tool_places_nearby(
 ) -> dict:
     import googlemaps
     
-    yield ("⏳ Searching for places...", False)
+    yield {"status" : f"⏳ Searching for locations..."}
 
     gmaps = googlemaps.Client(key=os.getenv('GOOGLE_MAPS_API_KEY'))
 
@@ -188,10 +191,8 @@ def tool_places_nearby(
     }
     
     # Add radius if specified (required unless rank_by=distance)
-    if radius is not None:
-        params['radius'] = radius
-    elif rank_by != 'distance':
-        params['radius'] = 1000  # Default radius
+    if radius is not None: params['radius'] = radius
+    elif rank_by != 'distance': params['radius'] = 1000  # Default radius
         
     # Remove None values
     params = {k: v for k, v in params.items() if v is not None}
@@ -199,10 +200,11 @@ def tool_places_nearby(
     # Make the API call
     result = gmaps.places_nearby(**params)
     locations = result.get('results', [])
-    
-    yield (f"✅ Found {len(locations)} locations", False)
 
-    yield (locations, True)
+    yield {
+        "status" : f"✅ Found `{len(locations)}` locations.", 
+        "result" : locations
+    }
 
 
 TOOL_CALCULATOR = {
@@ -228,7 +230,7 @@ TOOL_CALCULATOR = {
         "required": ["first_number", "second_number", "operation"]
     }
 }
-def tool_calculator(external, first_number, second_number, operation: str):
+def tool_calculator(app_context, first_number, second_number, operation: str):
     x, y = first_number, second_number
     
     result = None
@@ -237,6 +239,7 @@ def tool_calculator(external, first_number, second_number, operation: str):
     elif operation == "multiply": result = x * y
     elif operation == "divide": result = x / y if y != 0 else None
 
+    yield {"result" : f"⏳ Searching for locations..."}
     return result
 
 
@@ -254,10 +257,10 @@ TOOL_GEOCODE = {
         "required": ["address"]
     }
 }
-def tool_geocode(external, address: str) -> dict:
+def tool_geocode(app_context, address: str) -> dict:
     import googlemaps
     
-    yield (f"⏳ Geocoding '{address}'...", False)
+    yield {"status" : f"⏳ Geocoding '{address}'..."}
     
     gmaps = googlemaps.Client(key=os.getenv('GOOGLE_MAPS_API_KEY'))
     
@@ -266,12 +269,13 @@ def tool_geocode(external, address: str) -> dict:
     latitude = location["lat"]
     longitude = location["lng"]
 
-    yield (f"✅ Geocoded '{address}' to ({latitude},{longitude})...", False)
-    
-    yield ({
-        "latitude": latitude,
-        "longitude": longitude
-    }, True)
+    yield {
+        "status" : f"✅ Geocoded `{address}` to `({latitude},{longitude})`.",
+        "result" : {
+            "latitude": latitude,
+            "longitude": longitude
+        }
+    }
 
 
 TOOL_PLACE_DETAILS = {
@@ -308,27 +312,25 @@ TOOL_PLACE_DETAILS = {
         "required": ["place_id"]
     }
 }
-def tool_place_details(external, place_id: str, language: str = None, fields: list = None) -> dict:
+def tool_place_details(app_context, place_id: str, language: str = None, fields: list = None) -> dict:
     import googlemaps
     
+    yield {"status" : f"⏳ Looking up details on location..."}
+
     gmaps = googlemaps.Client(key=os.getenv('GOOGLE_MAPS_API_KEY'))
     
-    try:
-        params = {'place_id': place_id}
-        if language:
-            params['language'] = language
-        if fields:
-            params['fields'] = fields
-            
-        result = gmaps.place(**params)
+    params = {'place_id': place_id}
+    if language: params['language'] = language
+    if fields: params['fields'] = fields
         
-        if result.get('status') != 'OK':
-            return {"error": f"Failed to get place details: {result.get('status')}"}
-            
-        return result.get('result', {})
+    result = gmaps.place(**params)
+    details = result.get('result', {})
+
+    yield {
+        "status" : f"✅ Location details fetched.",
+        "result" : details
+    }
         
-    except Exception as e:
-        return {"error": f"Place details lookup failed: {str(e)}"}
 
 TOOLS = (
     (TOOL_SAVE_MEMORY, tool_save_memory),

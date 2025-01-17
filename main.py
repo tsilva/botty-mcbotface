@@ -2,19 +2,18 @@
 # TODO: add support for when tools fail
 # TODO: ask what to improve
 # TODO: add geocoding tool, tell to store geocode user's location and store in memory
-# TODO: show current memory in GUI
+# TODO: add tool result cache
 # TODO: customize UI
 # TODO: host in spaces
 # TODO: add examples
 # TODO: add multimodality
 # TODO: gr.Image, gr.Video, gr.Audio, gr.File, gr.HTML, gr.Gallery, gr.Plot, gr.Map
+# TODO: improve system prompt, make LLM use more markdown formatting and emojis
 # TODO: https://www.gradio.app/guides/plot-component-for-maps
-
 
 from dotenv import load_dotenv
 load_dotenv()
 
-import os
 import time
 import json
 import anthropic
@@ -27,7 +26,7 @@ MODEL_ID = "claude-3-5-sonnet-20241022"
 MAX_TOKENS = 1024
 
 system_memory = []
-EXTERNALS = {
+APP_CONTEXT = {
     "system_memory" : system_memory,
     "system_memory_max_size" : 5
 }
@@ -105,28 +104,32 @@ def chatbot(message, history):
                 start_time = time.time() # TODO: add timer
                 response = ChatMessage(
                     content="Processing...",
-                    metadata={"title": f"🛠️ Calling {tool_name}", "id": 0, "status": "pending"}
+                    metadata={"title": f"🛠️ Using tool `{tool_name}`", "id": 0, "status": "pending"} # TODO: id for what?
                 )
                 history.append(response)
                 yield history, get_memory_markdown()
 
                 # Call the tool
                 print(f"Calling {tool_name}({json.dumps(tool_input, indent=2)})")
-                tool_function = TOOLS_FUNCTIONS[tool_name]
-                tool_generator = tool_function(EXTERNALS, **tool_input)
-                
-                # Process tool status updates
                 tool_result = None
                 tool_statuses = []
-                for status_msg, is_final in tool_generator:
-                    if is_final:
-                        tool_statuses.append("✅ Finished")
-                        tool_result = status_msg
-                        response.metadata["title"] = f"✅ Called {tool_name}"
-                        response.metadata["status"] = "done"
-                    else:
-                        tool_statuses.append(status_msg)
+                tool_function = TOOLS_FUNCTIONS[tool_name]
+                tool_generator = tool_function(APP_CONTEXT, **tool_input)
+                for message in tool_generator:
+                    # Update tool status
+                    status = message.get("status")
+                    status_type = message.get("status_type", "current")
+                    if status_type == "step": tool_statuses.append(status)
+                    else: tool_statuses = tool_statuses[:-1] + [status]
                     response.content = "\n".join(tool_statuses)
+
+                    # In case the tool is done, mark it as done
+                    if "result" in message:
+                        tool_result = message["result"]
+                        response.metadata["status"] = "done"
+                        response.metadata["title"] = f"🛠️ Used tool `{tool_name}`"
+                        
+                    # Update the chat history
                     yield history, get_memory_markdown()
 
                 # Store final result in claude history
