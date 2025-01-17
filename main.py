@@ -1,8 +1,6 @@
 # https://docs.anthropic.com/en/docs/build-with-claude/tool-use
-# TODO: add support for when tools fail
+
 # TODO: ask what to improve
-# TODO: add geocoding tool, tell to store geocode user's location and store in memory
-# TODO: add tool result cache
 # TODO: customize UI
 # TODO: host in spaces
 # TODO: add examples
@@ -11,8 +9,13 @@
 # TODO: https://www.gradio.app/guides/plot-component-for-maps
 # TODO: trim down data from search results
 # TODO: bug follow up user messages not recorded in history
-# TODO: not all memories are being saved
 # TODO: add streaming support
+
+# TODO: add support for when tools fail
+
+# TODO: add tool result cache
+# TODO: new search is not updating location
+# TODO: not all memories are being saved
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -104,8 +107,6 @@ def chatbot(message, history):
                 tool_input = content.input
 
                 # Say that we're calling the tool
-                start_time = time.time() # TODO: add timer
-                
                 message = ChatMessage(
                     role="assistant",
                     content="...",
@@ -123,6 +124,7 @@ def chatbot(message, history):
                 tool_statuses = []
                 tool_function = TOOLS_FUNCTIONS[tool_name]
                 tool_generator = tool_function(APP_CONTEXT, **tool_input)
+                start_time = time.time()
                 for tool_yield in tool_generator:
                     # Update tool status
                     status = tool_yield.get("status")
@@ -133,8 +135,10 @@ def chatbot(message, history):
 
                     # In case the tool is done, mark it as done
                     if "result" in tool_yield:
+                        duration = time.time() - start_time
                         tool_result = tool_yield["result"]
                         message.metadata["status"] = "done"
+                        message.metadata["duration"] = duration
                         message.metadata["title"] = f"🛠️ Used tool `{tool_name}`"
                         
                     # Update the chat history
