@@ -8,11 +8,11 @@
 # TODO: add examples
 # TODO: add multimodality
 # TODO: gr.Image, gr.Video, gr.Audio, gr.File, gr.HTML, gr.Gallery, gr.Plot, gr.Map
-# TODO: improve system prompt, make LLM use more markdown formatting and emojis
 # TODO: https://www.gradio.app/guides/plot-component-for-maps
 # TODO: trim down data from search results
 # TODO: bug follow up user messages not recorded in history
 # TODO: not all memories are being saved
+# TODO: add streaming support
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -77,27 +77,27 @@ def chatbot(message, history):
         "content": message
     })
 
+    messages = []
+
     done = False
     while not done:
         done = True
+
         claude_response = prompt_claude()
         for content in claude_response.content:
             if content.type == "text":
-                # Show message in GUI
-                _message = {
+                message = ChatMessage(
+                    role="assistant",
+                    content=content.text
+                )
+                messages.append(message)
+                yield messages, get_memory_markdown()
+
+                # Store in claude history
+                claude_history.append({
                     "role": "assistant",
                     "content": content.text
-                }
-                history.append(
-                    ChatMessage(
-                        role=_message["role"],
-                        content=_message["content"]
-                    )
-                )
-                yield history, get_memory_markdown()
-                
-                # Store in claude history
-                claude_history.append({**_message})
+                })
             elif content.type == "tool_use":
                 tool_id = content.id
                 tool_name = content.name
@@ -105,12 +105,17 @@ def chatbot(message, history):
 
                 # Say that we're calling the tool
                 start_time = time.time() # TODO: add timer
-                response = ChatMessage(
-                    content="Processing...",
-                    metadata={"title": f"🛠️ Using tool `{tool_name}`", "id": 0, "status": "pending"} # TODO: id for what?
+                
+                message = ChatMessage(
+                    role="assistant",
+                    content="...",
+                    metadata={
+                        "title" : f"🛠️ Using tool `{tool_name}`",
+                        "status": "pending"
+                    }
                 )
-                history.append(response)
-                yield history, get_memory_markdown()
+                messages.append(message)
+                yield messages, get_memory_markdown()
 
                 # Call the tool
                 print(f"Calling {tool_name}({json.dumps(tool_input, indent=2)})")
@@ -118,22 +123,22 @@ def chatbot(message, history):
                 tool_statuses = []
                 tool_function = TOOLS_FUNCTIONS[tool_name]
                 tool_generator = tool_function(APP_CONTEXT, **tool_input)
-                for message in tool_generator:
+                for tool_yield in tool_generator:
                     # Update tool status
-                    status = message.get("status")
-                    status_type = message.get("status_type", "current")
+                    status = tool_yield.get("status")
+                    status_type = tool_yield.get("status_type", "current")
                     if status_type == "step": tool_statuses.append(status)
                     else: tool_statuses = tool_statuses[:-1] + [status]
-                    response.content = "\n".join(tool_statuses)
+                    message.content = "\n".join(tool_statuses)
 
                     # In case the tool is done, mark it as done
-                    if "result" in message:
-                        tool_result = message["result"]
-                        response.metadata["status"] = "done"
-                        response.metadata["title"] = f"🛠️ Used tool `{tool_name}`"
+                    if "result" in tool_yield:
+                        tool_result = tool_yield["result"]
+                        message.metadata["status"] = "done"
+                        message.metadata["title"] = f"🛠️ Used tool `{tool_name}`"
                         
                     # Update the chat history
-                    yield history, get_memory_markdown()
+                    yield messages, get_memory_markdown()
 
                 # Store final result in claude history
                 claude_history.extend([
@@ -165,6 +170,7 @@ def chatbot(message, history):
                 raise Exception(f"Unknown content type {type(content)}")
 
 with gr.Blocks() as demo:
+
     memory = gr.Markdown(render=False)
     with gr.Row(equal_height=True):
         with gr.Column(scale=80, min_width=600):
