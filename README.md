@@ -1,3 +1,9 @@
+---
+title: botty-mcbotface
+app_file: main.py
+sdk: gradio
+sdk_version: 5.12.0
+---
 # 🤖 Botty McBotface
 
 <p align="center">

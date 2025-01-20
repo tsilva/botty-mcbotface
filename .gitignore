@@ -173,3 +173,5 @@ cython_debug/
 # Logs
 logs/
 *.log
+
+.gradio/
