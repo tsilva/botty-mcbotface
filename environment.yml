@@ -6,10 +6,5 @@ dependencies:
   - python=3.11
   - pip
   - pip:
-    - python-dotenv
-    - anthropic
-    - openai
-    - langchain
-    - googlemaps
-    - gradio>=5.0.0
+    - -r requirements.txt
 
