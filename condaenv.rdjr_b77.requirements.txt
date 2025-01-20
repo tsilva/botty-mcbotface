@@ -1,0 +1,6 @@
+python-dotenv
+anthropic
+openai
+langchain
+googlemaps
+gradio>=5.0.0
