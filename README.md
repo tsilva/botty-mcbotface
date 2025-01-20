@@ -19,7 +19,7 @@ short_description: 💬 Just what you needed, another AI chatbot 🤦
 
 > 💬 Just what you needed, another AI chatbot trying to remember things and use tools without breaking everything 🤦
 
-🚀 Try it out: [Botty McBotface on Hugging Face Spaces](https://huggingface.co/spaces/tsilva/botty-mcbotface/)
+🚀 Try it out on [Hugging Face Spaces](https://huggingface.co/spaces/tsilva/botty-mcbotface/)
 
 ## ✨ Features
 
