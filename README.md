@@ -11,11 +11,15 @@ short_description: 💬 Just what you needed, another AI chatbot 🤦
 ---
 # 🤖 Botty McBotface
 
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-black?logo=github)](https://github.com/tsilva/botty-mcbotface) &nbsp; [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/tsilva/botty-mcbotface/)
+
 <p align="center">
   <img src="logo.png" alt="Botty McBotface Logo" width="400"/>
 </p>
 
 > 💬 Just what you needed, another AI chatbot trying to remember things and use tools without breaking everything 🤦
+
+🚀 Try it out: [Botty McBotface on Hugging Face Spaces](https://huggingface.co/spaces/tsilva/botty-mcbotface/)
 
 ## ✨ Features
 
