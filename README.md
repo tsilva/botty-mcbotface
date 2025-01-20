@@ -3,6 +3,11 @@ title: botty-mcbotface
 app_file: main.py
 sdk: gradio
 sdk_version: 5.12.0
+license: mit
+emoji: 😻
+colorTo: blue
+pinned: true
+short_description: 💬 Just what you needed, another AI chatbot 🤦
 ---
 # 🤖 Botty McBotface
 
