@@ -140,6 +140,8 @@ def chatbot(message, history):
                         # In case the tool is done, mark it as done
                         if "result" in tool_yield:
                             tool_result = tool_yield["result"]
+                            
+                            print(f"Tool {tool_name} result: {json.dumps(tool_result, indent=2)}")
                             tools_cache[tool_key] = tool_yield
                             duration = time.time() - start_time
                             message.metadata["status"] = "done"

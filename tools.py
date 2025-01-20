@@ -258,22 +258,59 @@ TOOL_GEOCODE = {
     }
 }
 def tool_geocode(app_context, address: str) -> dict:
+    # Haversine formula to calculate the great-circle distance
+    def _haversine(lat1, lon1, lat2, lon2):
+        import math
+
+        # Convert latitude and longitude from degrees to radians
+        lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+
+        # Radius of Earth in kilometers
+        R = 6371.0
+
+        # Differences in coordinates
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+
+        # Haversine formula
+        a = math.sin(dlat / 2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2)**2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        distance = R * c
+
+        return distance
+
     import googlemaps
     
     yield {"status" : f"⏳ Geocoding '{address}'..."}
-    
+
+    # TODO: reuse gmaps client
     gmaps = googlemaps.Client(key=os.getenv('GOOGLE_MAPS_API_KEY'))
     
     result = gmaps.geocode(address)
-    location = result[0]['geometry']['location']
-    latitude = location["lat"]
-    longitude = location["lng"]
+
+    # Retrieve coordinates
+    #location = result[0]['geometry']['location']
+    #latitude = location["lat"]
+    #longitude = location["lng"]
+
+    # Retrieve bounding box
+    bounds = result[0]['geometry']['bounds']
+    northeast = bounds['northeast']
+    southwest = bounds['southwest']
+
+    # Calculate the center of the bounding box
+    center_lat = (northeast['lat'] + southwest['lat']) / 2
+    center_lng = (northeast['lng'] + southwest['lng']) / 2
+    center = {"lat": center_lat, "lng": center_lng}
+
+    # Calculate the radius of the bounding box
+    radius = _haversine(center_lat, center_lng, northeast['lat'], northeast['lng'])
 
     yield {
-        "status" : f"✅ Geocoded `{address}` to `({latitude},{longitude})`.",
+        "status" : f"✅ Geocoded `{address}` to center=`({center_lat},{center_lng}), radius={radius}m`.",
         "result" : {
-            "latitude": latitude,
-            "longitude": longitude
+            "center": center,
+            "radius" : radius
         }
     }
 
