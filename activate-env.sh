@@ -1,4 +1,13 @@
-#!/bin/bash
+# Detect if the script is being sourced
+(return 0 2>/dev/null) && sourced=1 || sourced=0
+
+if [ $sourced -eq 0 ]; then
+    echo "Error: This script needs to be sourced. Run:"
+    echo "    source activate-env.sh"
+    echo "    or"
+    echo "    . activate-env.sh"
+    exit 1
+fi
 
 # Check if Miniconda is installed
 if ! command -v conda &> /dev/null; then
@@ -29,10 +38,11 @@ fi
 # Check if the environment already exists
 if conda env list | grep -q "^$env_name\s"; then
     echo "Activating existing environment: $env_name"
-    source $(conda info --base)/etc/profile.d/conda.sh
-    conda activate "$env_name"
 else
     echo "Environment $env_name not found. Creating it from environment.yml..."
+    # Initialize conda for the shell
+    eval "$(conda shell.bash hook)"
+    
     conda env create -f environment.yml
 
     if [ $? -ne 0 ]; then
@@ -40,15 +50,17 @@ else
         exit 1
     fi
 
-    echo "Environment $env_name created successfully. Activating it..."
-    source $(conda info --base)/etc/profile.d/conda.sh
-    conda activate "$env_name"
+    echo "Environment $env_name created successfully."
 fi
 
-# Confirm activation
+# Initialize conda and activate environment
+. $(conda info --base)/etc/profile.d/conda.sh
+conda activate "$env_name"
+
+# Confirm activation (but don't exit since we're sourcing)
 if [ "$CONDA_DEFAULT_ENV" = "$env_name" ]; then
     echo "Environment $env_name is now active."
 else
     echo "Failed to activate environment $env_name."
-    exit 1
+    return 1
 fi

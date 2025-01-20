@@ -25,14 +25,27 @@
    ```sh
    cd botty-mcbotface
    ```
-3. Create conda environment:
-   ```sh
-   conda env create -f environment.yml
+
+## Environment Setup
+
+The project uses a Conda environment defined in `environment.yml`. To set up and activate the environment:
+
+1. Ensure you have Miniconda or Anaconda installed
+2. **IMPORTANT:** You must SOURCE the activation script (do not run with bash/sh):
+   ```bash
+   source activate-env.sh
+   # or
+   . activate-env.sh
    ```
-4. Activate the conda environment:
-   ```sh
-   conda activate botty-mcbotface
-   ```
+
+⚠️ Running with `bash activate-env.sh` or `./activate-env.sh` will not work!
+
+The script will:
+- Check for Miniconda installation
+- Create the environment if it doesn't exist
+- Activate the environment automatically
+
+Note: Using `./activate-env.sh` won't work as the script needs to be sourced to modify your current shell environment.
 
 ## 🚀 Usage
 
