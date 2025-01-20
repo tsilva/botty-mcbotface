@@ -1,6 +1,7 @@
 # https://docs.anthropic.com/en/docs/build-with-claude/tool-use
 # https://www.gradio.app/guides/plot-component-for-maps
-# TODO: use bounding box to determine correct search radius
+
+- [x] Improve logging
 # TODO: ask LLM what to improve
 # TODO: improve layout
 # TODO: add starter examples

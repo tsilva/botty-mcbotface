@@ -18,6 +18,10 @@ import gradio as gr
 from gradio import ChatMessage
 
 from tools import TOOLS_SPECS, TOOLS_FUNCTIONS
+from utils.logger import setup_logger
+
+# Setup logger
+logger = setup_logger()
 
 system_memory = []
 
@@ -74,117 +78,124 @@ def get_tool_generator(cached_yield, tool_function, app_context, tool_input):
     else: yield from tool_function(app_context, **tool_input)
 
 def chatbot(message, history):
-    # Store in claude history
-    claude_history.append({
-        "role": "user",
-        "content": message
-    })
+    logger.info(f"New message received: {message[:50]}...")
+    try:
+        # Store in claude history
+        claude_history.append({
+            "role": "user",
+            "content": message
+        })
 
-    messages = []
+        messages = []
 
-    done = False
-    while not done:
-        done = True
+        done = False
+        while not done:
+            done = True
 
-        claude_response = prompt_claude()
-        for content in claude_response.content:
-            if content.type == "text":
-                message = ChatMessage(
-                    role="assistant",
-                    content=content.text
-                )
-                messages.append(message)
-                yield messages, get_memory_markdown()
+            claude_response = prompt_claude()
+            for content in claude_response.content:
+                if content.type == "text":
+                    message = ChatMessage(
+                        role="assistant",
+                        content=content.text
+                    )
+                    messages.append(message)
+                    yield messages, get_memory_markdown()
 
-                # Store in claude history
-                claude_history.append({
-                    "role": "assistant",
-                    "content": content.text
-                })
-            elif content.type == "tool_use":
-                tool_id = content.id
-                tool_name = content.name
-                tool_input = content.input
-                tool_key = f"{tool_name}_{json.dumps(tool_input)}" # TODO: sort input
-                tool_cached_yield = tools_cache.get(tool_key)
-
-                # Say that we're calling the tool
-                message = ChatMessage(
-                    role="assistant",
-                    content="...",
-                    metadata={
-                        "title" : f"🛠️ Using tool `{tool_name}`",
-                        "status": "pending"
-                    }
-                )
-                messages.append(message)
-                yield messages, get_memory_markdown()
-
-                # Call the tool
-                print(f"Calling {tool_name}({json.dumps(tool_input, indent=2)})")
-                tool_result = None
-                tool_statuses = []
-                tool_function = TOOLS_FUNCTIONS[tool_name]
-                tool_generator = get_tool_generator(tool_cached_yield, tool_function, app_context, tool_input)
-                tool_error = False
-                start_time = time.time()
-                try:
-                    for tool_yield in tool_generator:
-                        # Update tool status
-                        status = tool_yield.get("status")
-                        status_type = tool_yield.get("status_type", "current")
-                        if status_type == "step": tool_statuses.append(status)
-                        else: tool_statuses = tool_statuses[:-1] + [status]
-                        message.content = "\n".join(tool_statuses)
-
-                        # In case the tool is done, mark it as done
-                        if "result" in tool_yield:
-                            tool_result = tool_yield["result"]
-                            
-                            print(f"Tool {tool_name} result: {json.dumps(tool_result, indent=2)}")
-                            tools_cache[tool_key] = tool_yield
-                            duration = time.time() - start_time
-                            message.metadata["status"] = "done"
-                            message.metadata["duration"] = duration
-                            message.metadata["title"] = f"🛠️ Used tool `{tool_name}`"
-
-                        # Update the chat history
-                        yield messages, get_memory_markdown()
-                except Exception as tool_exception:
-                    tool_error = str(tool_exception)
-                    message.metadata["status"] = "done"
-                    message.content = tool_error
-                    message.metadata["title"] = f"💥 Tool `{tool_name}` failed"
-
-                # Store final result in claude history
-                claude_history.extend([
-                    {
+                    # Store in claude history
+                    claude_history.append({
                         "role": "assistant",
-                        "content": [
-                            {
-                                "type": "tool_use",
-                                "id": tool_id,
-                                "name" : tool_name,
-                                "input" : tool_input
-                        }
-                        ]
-                    },
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": tool_id,
-                                "content": str(tool_error) if tool_error else str(tool_result),
-                                "is_error" : bool(tool_error)
-                            }
-                        ]
-                    }
-                ])
+                        "content": content.text
+                    })
+                elif content.type == "tool_use":
+                    tool_id = content.id
+                    tool_name = content.name
+                    tool_input = content.input
+                    tool_key = f"{tool_name}_{json.dumps(tool_input)}" # TODO: sort input
+                    tool_cached_yield = tools_cache.get(tool_key)
 
-                done = False
-            else:
-                raise Exception(f"Unknown content type {type(content)}")
+                    # Say that we're calling the tool
+                    message = ChatMessage(
+                        role="assistant",
+                        content="...",
+                        metadata={
+                            "title" : f"🛠️ Using tool `{tool_name}`",
+                            "status": "pending"
+                        }
+                    )
+                    messages.append(message)
+                    yield messages, get_memory_markdown()
+
+                    # Call the tool
+                    print(f"Calling {tool_name}({json.dumps(tool_input, indent=2)})")
+                    tool_result = None
+                    tool_statuses = []
+                    tool_function = TOOLS_FUNCTIONS[tool_name]
+                    tool_generator = get_tool_generator(tool_cached_yield, tool_function, app_context, tool_input)
+                    tool_error = False
+                    start_time = time.time()
+                    try:
+                        for tool_yield in tool_generator:
+                            # Update tool status
+                            status = tool_yield.get("status")
+                            status_type = tool_yield.get("status_type", "current")
+                            if status_type == "step": tool_statuses.append(status)
+                            else: tool_statuses = tool_statuses[:-1] + [status]
+                            message.content = "\n".join(tool_statuses)
+
+                            # In case the tool is done, mark it as done
+                            if "result" in tool_yield:
+                                tool_result = tool_yield["result"]
+                                
+                                print(f"Tool {tool_name} result: {json.dumps(tool_result, indent=2)}")
+                                tools_cache[tool_key] = tool_yield
+                                duration = time.time() - start_time
+                                message.metadata["status"] = "done"
+                                message.metadata["duration"] = duration
+                                message.metadata["title"] = f"🛠️ Used tool `{tool_name}`"
+
+                            # Update the chat history
+                            yield messages, get_memory_markdown()
+                    except Exception as tool_exception:
+                        tool_error = str(tool_exception)
+                        message.metadata["status"] = "done"
+                        message.content = tool_error
+                        message.metadata["title"] = f"💥 Tool `{tool_name}` failed"
+
+                    # Store final result in claude history
+                    claude_history.extend([
+                        {
+                            "role": "assistant",
+                            "content": [
+                                {
+                                    "type": "tool_use",
+                                    "id": tool_id,
+                                    "name" : tool_name,
+                                    "input" : tool_input
+                            }
+                            ]
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "tool_result",
+                                    "tool_use_id": tool_id,
+                                    "content": str(tool_error) if tool_error else str(tool_result),
+                                    "is_error" : bool(tool_error)
+                                }
+                            ]
+                        }
+                    ])
+
+                    done = False
+                else:
+                    raise Exception(f"Unknown content type {type(content)}")
+        logger.debug(f"Generated response: {messages[-1].content[:50]}...")
+        return messages, get_memory_markdown()
+    except Exception as e:
+        logger.error(f"Error processing message: {str(e)}", exc_info=True)
+        return "Sorry, an error occurred while processing your message."
 
 with gr.Blocks() as demo:
 
@@ -202,4 +213,6 @@ with gr.Blocks() as demo:
             gr.Markdown("<center><h1>Memory</h1></center>")
             memory.render()
 
-demo.launch()
+if __name__ == "__main__":
+    logger.info("Starting Botty McBotface...")
+    demo.launch()
