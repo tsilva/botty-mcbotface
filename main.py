@@ -1,13 +1,3 @@
-# https://docs.anthropic.com/en/docs/build-with-claude/tool-use
-# https://www.gradio.app/guides/plot-component-for-maps
-# TODO: ask LLM what to improve
-# TODO: improve layout
-# TODO: add starter examples
-# TODO: add multimodality (input/ooutput): gr.Image, gr.Video, gr.Audio, gr.File, gr.HTML, gr.Gallery, gr.Plot, gr.Map
-# TODO: add streaming support
-# TODO: trim down data from nearby places results (filling up context too much)
-# TODO: host in spaces
-
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -55,6 +45,7 @@ def prompt_claude():
     system_prompt_text = load_system_prompt()
     if system_prompt_memory_str: system_prompt_text += f"\n\nHere are the memories the user asked you to remember:\n{system_prompt_memory_str}"
     
+    """
     # Send message to Claude
     model_id = app_context["model_id"]
     max_tokens = app_context["max_tokens"]
@@ -70,6 +61,36 @@ def prompt_claude():
         }],
         messages=claude_history
     )
+    """
+
+    import os
+    import requests
+
+    model_id = app_context["model_id"]
+    max_tokens = app_context["max_tokens"]
+    OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+    try:
+        response = requests.post(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            data=json.dumps({
+                "model": "openrouter/auto",
+                #"tools": TOOLS_SPECS.values(),
+                # TODO: SYSTEM PROMPT
+                #max_tokens=max_tokens,
+                #temperature=0.0, 
+                "messages": claude_history
+            })
+        ).json()
+    except Exception as e:
+        print(f"Error calling OpenRouter API: {str(e)}")
+        return "Sorry, an error occurred while calling the OpenRouter API."
+
+    message = response["choices"][0]["message"]["content"]
+
     return message
 
 def get_tool_generator(cached_yield, tool_function, app_context, tool_input):
@@ -197,11 +218,10 @@ def chatbot(message, history):
         logger.error(f"Error processing message: {str(e)}", exc_info=True)
         return "Sorry, an error occurred while processing your message."
 
-with gr.Blocks() as demo:
-
+with gr.Blocks(fill_height=True) as demo:
     memory = gr.Markdown(render=False)
     with gr.Row(equal_height=True):
-        with gr.Column(scale=80, min_width=600):
+        with gr.Column(scale=3, min_width=600):
             gr.Markdown("<center><h1>Botty McBotface</h1></center>")
             gr.ChatInterface(
                 fn=chatbot,
@@ -209,7 +229,7 @@ with gr.Blocks() as demo:
                 description="Botty McBotFace is really just another chatbot.",
                 additional_outputs=[memory],
             )
-        with gr.Column(scale=20, min_width=150, variant="compact"):
+        with gr.Column(scale=1, min_width=150, variant="compact"):
             gr.Markdown("<center><h1>Memory</h1></center>")
             memory.render()
 

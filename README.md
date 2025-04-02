@@ -9,73 +9,67 @@ colorTo: blue
 pinned: true
 short_description: 💬 Just what you needed, another AI chatbot 🤦
 ---
-# 🤖 Botty McBotface
+# 🤖 botty-mcbotface
 
-[![GitHub](https://img.shields.io/badge/GitHub-Repository-black?logo=github)](https://github.com/tsilva/botty-mcbotface) &nbsp; [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/tsilva/botty-mcbotface/)
+🗣️ A location-aware AI chatbot with memory and integrated tools for travel assistance
 
-<p align="center">
-  <img src="logo.png" alt="Botty McBotface Logo" width="400"/>
-</p>
+## 📖 Overview
 
-> 💬 Just what you needed, another AI chatbot trying to remember things and use tools without breaking everything 🤦
+Botty McBotface is a Gradio-powered AI assistant that helps with travel recommendations and location-based information. It features a long-term memory system to remember your preferences and uses integrated tools like geocoding, place search, and weather information to provide personalized travel insights.
 
-🚀 Try it out on [Hugging Face Spaces](https://huggingface.co/spaces/tsilva/botty-mcbotface/)
+## 🚀 Installation
 
-## ✨ Features
+```bash
+git clone https://github.com/tsilva/botty-mcbotface.git
+cd botty-mcbotface
+pipx install . --force
+```
 
-- 🧠 Long-term memory system
-- 🛠️ Integrated tools support
-- 🌍 Location awareness
-- 🌤️ Weather information
-- 🔍 Place search capabilities
-- 🖥️ Gradio-powered GUI
+## 🛠️ Environment Setup
 
-## 🛠️ Installation
+The project uses a Conda environment defined in `environment.yml`. To set up:
 
-1. Clone this repository:
-   ```sh
-   git clone https://github.com/tsilva/botty-mcbotface.git
-   ```
-2. Navigate to the project directory:
-   ```sh
-   cd botty-mcbotface
-   ```
+```bash
+# IMPORTANT: You must SOURCE the activation script
+source activate-env.sh
+# or
+. activate-env.sh
+```
 
-## Environment Setup
+This will check for Miniconda, create the environment if needed, and activate it automatically.
 
-The project uses a Conda environment defined in `environment.yml`. To set up and activate the environment:
+## 🔑 API Keys
 
-1. Ensure you have Miniconda or Anaconda installed
-2. **IMPORTANT:** You must SOURCE the activation script (do not run with bash/sh):
-   ```bash
-   source activate-env.sh
-   # or
-   . activate-env.sh
-   ```
+Copy the example environment file and add your API keys:
 
-⚠️ Running with `bash activate-env.sh` or `./activate-env.sh` will not work!
+```bash
+cp .env.example .env
+```
 
-The script will:
-- Check for Miniconda installation
-- Create the environment if it doesn't exist
-- Activate the environment automatically
-
-Note: Using `./activate-env.sh` won't work as the script needs to be sourced to modify your current shell environment.
+Edit the `.env` file to add:
+- `GOOGLE_MAPS_API_KEY` - For location services
+- `ANTHROPIC_API_KEY` - For Claude AI model access
 
 ## 🚀 Usage
 
-1. Run the chatbot:
-   ```sh
-   python main.py
-   ```
+Run the chatbot:
 
-2. For development with auto-reload:
-   ```sh
-   gradio main.py
-   ```
-   This will automatically restart the app when you make changes to the source files.
+```bash
+python main.py
+```
 
-3. Interact with the chatbot through the GUI.
+For development with auto-reload:
+
+```bash
+gradio main.py
+```
+
+### Features
+
+- **Location Awareness**: Automatically geocodes and remembers locations
+- **Memory System**: Stores your preferences for personalized recommendations
+- **Integrated Tools**: Search for places, get directions, check weather
+- **Gradio Interface**: Easy-to-use chat interface with memory display
 
 ## 📄 License
 
