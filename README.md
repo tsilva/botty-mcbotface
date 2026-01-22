@@ -18,7 +18,7 @@ short_description: A location-aware AI chatbot with memory and integrated tools
   [![Gradio](https://img.shields.io/badge/Gradio-5.12.0-orange.svg)](https://gradio.app)
   [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Spaces-yellow)](https://huggingface.co/spaces/tsilva/botty-mcbotface)
 
-  **A location-aware AI travel assistant with memory persistence and Google Maps integration**
+  **🗺️ Your AI travel buddy that remembers your preferences and knows its way around Google Maps**
 
   [Live Demo](https://huggingface.co/spaces/tsilva/botty-mcbotface)
 </div>
