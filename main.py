@@ -1,9 +1,10 @@
 from dotenv import load_dotenv
 load_dotenv()
 
+import os
 import time
 import json
-import anthropic
+from openai import OpenAI
 import gradio as gr
 from gradio import ChatMessage
 
@@ -16,7 +17,7 @@ logger = setup_logger()
 system_memory = []
 
 app_context = {
-    "model_id" : "claude-3-5-sonnet-20241022",
+    "model_id" : "anthropic/claude-3.5-sonnet",
     "max_tokens" : 1024,
     "system_memory" : system_memory,
     "system_memory_max_size" : 5
@@ -27,7 +28,10 @@ tools_cache = {}
 # TODO: this is a hack, if I don't fix this, multiple chats won't be supported
 claude_history = []
 
-client = anthropic.Anthropic()
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.environ["OPENROUTER_API_KEY"]
+)
 
 def load_system_prompt():
     with open('prompts/system.txt', 'r') as f:
@@ -39,29 +43,40 @@ def get_memory_string():
 def get_memory_markdown():
     return "\n".join([f"{index}. {value}" for index, value in enumerate(list(system_memory))]).strip()
 
+def _convert_tools():
+    """Convert Anthropic-format tool specs to OpenAI function-calling format."""
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": spec["name"],
+                "description": spec["description"],
+                "parameters": spec["input_schema"]
+            }
+        }
+        for spec in TOOLS_SPECS.values()
+    ]
+
 def prompt_claude():
     # Build the system prompt including all memories the user asked to remember
     system_prompt_memory_str = get_memory_string()
     system_prompt_text = load_system_prompt()
     if system_prompt_memory_str: system_prompt_text += f"\n\nHere are the memories the user asked you to remember:\n{system_prompt_memory_str}"
-    
-    # Send message to Claude
+
     model_id = app_context["model_id"]
     max_tokens = app_context["max_tokens"]
-    message = client.messages.create(
+
+    messages = [{"role": "system", "content": system_prompt_text}] + claude_history
+
+    response = client.chat.completions.create(
         model=model_id,
         max_tokens=max_tokens,
         temperature=0.0,
-        tools=TOOLS_SPECS.values(),
-        system=[{
-            "type": "text",
-            "text": system_prompt_text,
-            "cache_control": {"type": "ephemeral"}
-        }],
-        messages=claude_history
+        tools=_convert_tools(),
+        messages=messages
     )
 
-    return message
+    return response
 
 def get_tool_generator(cached_yield, tool_function, app_context, tool_input):
     """Helper function to either yield cached result or run tool function"""
@@ -84,29 +99,43 @@ def chatbot(message, history):
             done = True
 
             claude_response = prompt_claude()
-            for content in claude_response.content:
-                if content.type == "text":
-                    message = ChatMessage(
-                        role="assistant",
-                        content=content.text
-                    )
-                    messages.append(message)
-                    yield messages, get_memory_markdown()
+            choice = claude_response.choices[0].message
 
-                    # Store in claude history
-                    claude_history.append({
-                        "role": "assistant",
-                        "content": [{"type": "text", "text": content.text}]
-                    })
-                elif content.type == "tool_use":
-                    tool_id = content.id
-                    tool_name = content.name
-                    tool_input = content.input
-                    tool_key = f"{tool_name}_{json.dumps(tool_input)}" # TODO: sort input
+            # Handle text content
+            if choice.content:
+                msg = ChatMessage(
+                    role="assistant",
+                    content=choice.content
+                )
+                messages.append(msg)
+                yield messages, get_memory_markdown()
+
+            # Handle tool calls
+            if choice.tool_calls:
+                # Store assistant message with tool calls in history
+                assistant_msg = {"role": "assistant", "content": choice.content or ""}
+                assistant_msg["tool_calls"] = [
+                    {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {
+                            "name": tc.function.name,
+                            "arguments": tc.function.arguments
+                        }
+                    }
+                    for tc in choice.tool_calls
+                ]
+                claude_history.append(assistant_msg)
+
+                for tool_call in choice.tool_calls:
+                    tool_id = tool_call.id
+                    tool_name = tool_call.function.name
+                    tool_input = json.loads(tool_call.function.arguments)
+                    tool_key = f"{tool_name}_{json.dumps(tool_input)}"
                     tool_cached_yield = tools_cache.get(tool_key)
 
                     # Say that we're calling the tool
-                    message = ChatMessage(
+                    msg = ChatMessage(
                         role="assistant",
                         content="...",
                         metadata={
@@ -114,7 +143,7 @@ def chatbot(message, history):
                             "status": "pending"
                         }
                     )
-                    messages.append(message)
+                    messages.append(msg)
                     yield messages, get_memory_markdown()
 
                     # Call the tool
@@ -127,61 +156,43 @@ def chatbot(message, history):
                     start_time = time.time()
                     try:
                         for tool_yield in tool_generator:
-                            # Update tool status
                             status = tool_yield.get("status")
                             status_type = tool_yield.get("status_type", "current")
                             if status_type == "step": tool_statuses.append(status)
                             else: tool_statuses = tool_statuses[:-1] + [status]
-                            message.content = "\n".join(tool_statuses)
+                            msg.content = "\n".join(tool_statuses)
 
-                            # In case the tool is done, mark it as done
                             if "result" in tool_yield:
                                 tool_result = tool_yield["result"]
-                                
                                 print(f"Tool {tool_name} result: {json.dumps(tool_result, indent=2)}")
                                 tools_cache[tool_key] = tool_yield
                                 duration = time.time() - start_time
-                                message.metadata["status"] = "done"
-                                message.metadata["duration"] = duration
-                                message.metadata["title"] = f"🛠️ Used tool `{tool_name}`"
+                                msg.metadata["status"] = "done"
+                                msg.metadata["duration"] = duration
+                                msg.metadata["title"] = f"🛠️ Used tool `{tool_name}`"
 
-                            # Update the chat history
                             yield messages, get_memory_markdown()
                     except Exception as tool_exception:
                         tool_error = str(tool_exception)
-                        message.metadata["status"] = "done"
-                        message.content = tool_error
-                        message.metadata["title"] = f"💥 Tool `{tool_name}` failed"
+                        msg.metadata["status"] = "done"
+                        msg.content = tool_error
+                        msg.metadata["title"] = f"💥 Tool `{tool_name}` failed"
 
-                    # Store final result in claude history
-                    claude_history.extend([
-                        {
-                            "role": "assistant",
-                            "content": [
-                                {
-                                    "type": "tool_use",
-                                    "id": tool_id,
-                                    "name" : tool_name,
-                                    "input" : tool_input
-                            }
-                            ]
-                        },
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "tool_result",
-                                    "tool_use_id": tool_id,
-                                    "content": str(tool_error) if tool_error else str(tool_result),
-                                    "is_error" : bool(tool_error)
-                                }
-                            ]
-                        }
-                    ])
+                    # Store tool result in history
+                    claude_history.append({
+                        "role": "tool",
+                        "tool_call_id": tool_id,
+                        "content": str(tool_error) if tool_error else str(tool_result)
+                    })
 
-                    done = False
-                else:
-                    raise Exception(f"Unknown content type {type(content)}")
+                done = False
+            else:
+                # No tool calls — store text-only assistant message
+                if choice.content:
+                    claude_history.append({
+                        "role": "assistant",
+                        "content": choice.content
+                    })
         logger.debug(f"Generated response: {messages[-1].content[:50]}...")
         return messages, get_memory_markdown()
     except Exception as e:
