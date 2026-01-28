@@ -1,39 +1,41 @@
 ---
-title: botty-mcbotface
+title: chat-sandbox
 app_file: main.py
 sdk: gradio
 sdk_version: 6.5.0
 license: mit
-emoji: 😻
+emoji: 🧪
 colorTo: blue
 pinned: true
-short_description: A location-aware AI chatbot with memory and integrated tools
+short_description: A configurable AI chat sandbox with tools and memory
 ---
 
 <div align="center">
-  <img src="logo.png" alt="botty-mcbotface" width="512"/>
+  <img src="logo.png" alt="chat-sandbox" width="512"/>
 
   [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
   [![Python](https://img.shields.io/badge/Python-3.11-3776AB.svg)](https://python.org)
   [![Gradio](https://img.shields.io/badge/Gradio-6.5.0-orange.svg)](https://gradio.app)
   [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Spaces-yellow)](https://huggingface.co/spaces/tsilva/botty-mcbotface)
 
-  **🗺️ Your AI travel buddy that remembers your preferences and knows its way around Google Maps**
+  **A configurable AI chat sandbox with toggleable tools, memory, and LLM parameter controls**
 
   [Live Demo](https://huggingface.co/spaces/tsilva/botty-mcbotface)
 </div>
 
 ## Overview
 
-Botty McBotface is a Gradio-powered AI chatbot that provides personalized travel recommendations. It remembers your preferences across conversations, automatically geocodes locations you mention, and uses Google Maps APIs to search for places, get directions, and provide detailed location information.
+Chat Sandbox is a Gradio-powered AI chat interface that lets you configure the model, system prompt, enabled tools, and generation parameters on the fly. It connects to multiple LLM providers via OpenRouter and includes built-in tools for memory, geocoding, place search, and math.
 
 ## Features
 
-- **Location Awareness** - Automatically geocodes addresses and maintains location context for searches
-- **Memory System** - Stores your preferences (food, music, arts) for personalized recommendations
-- **Place Search** - Search nearby restaurants, attractions, hotels with filters for price, ratings, and more
-- **Place Details** - Get comprehensive info including reviews, hours, and contact details
-- **Real-time Tool Feedback** - Visual status updates as the assistant uses its tools
+- **Model Selection** - Choose from Claude, GPT-4, Gemini, Llama, Mistral, and more via OpenRouter
+- **Custom System Prompt** - Edit the system prompt directly in the UI
+- **Tool Toggles** - Enable/disable individual tools (memory, geocoding, places, calculator)
+- **LLM Parameters** - Adjust temperature, top_p, frequency penalty, presence penalty, and max tokens
+- **Memory System** - Persistent memory sidebar for storing preferences and context
+- **Place Search** - Google Maps integration for geocoding, nearby search, and place details
+- **Real-time Tool Feedback** - Visual status updates as tools execute
 
 ## Quick Start
 
@@ -56,12 +58,10 @@ python main.py
 ### Prerequisites
 
 - [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or Anaconda
-- Google Maps API key (for geocoding and place search)
-- Anthropic API key (for Claude AI) or OpenRouter API key
+- OpenRouter API key (for LLM access)
+- Google Maps API key (optional, for geocoding and place search tools)
 
 ### Environment Setup
-
-The project uses Conda for environment management:
 
 ```bash
 # This script checks for Miniconda, creates the env if needed, and activates it
@@ -73,9 +73,8 @@ source activate-env.sh
 Create a `.env` file with your API keys:
 
 ```bash
-GOOGLE_MAPS_API_KEY=your_google_maps_key
-OPENROUTER_API_KEY=your_anthropic_key
-OPENROUTER_API_KEY=your_openrouter_key  # Optional alternative
+OPENROUTER_API_KEY=your_openrouter_key
+GOOGLE_MAPS_API_KEY=your_google_maps_key  # Optional, for geo tools
 ```
 
 ## Usage
@@ -92,57 +91,45 @@ gradio main.py
 
 The chat interface will be available at `http://localhost:7860`.
 
-### Example Conversations
+## Settings Panel
 
-```
-You: I'm planning a trip to Porto, Portugal
-Bot: [Geocodes Porto, saves to memory]
-     I've noted Porto as your current location context!
+The collapsible settings accordion at the top of the UI provides:
 
-You: Find me some good seafood restaurants
-Bot: [Searches nearby places with type=seafood_restaurant]
-     Here are the top seafood spots in Porto...
-
-You: I prefer budget-friendly options
-Bot: [Saves preference to memory]
-     Got it! I'll prioritize affordable options in future searches.
-```
+| Setting | Description |
+|---------|-------------|
+| Model | Select LLM model (Claude, GPT-4, Gemini, Llama, Mistral) |
+| System Prompt | Editable system prompt text |
+| Enabled Tools | Checkbox toggles for each tool |
+| Max Tokens | Maximum response length (64-4096) |
+| Temperature | Randomness control (0.0-2.0) |
+| Top P | Nucleus sampling threshold (0.0-1.0) |
+| Frequency Penalty | Penalize repeated tokens (-2.0 to 2.0) |
+| Presence Penalty | Penalize already-used tokens (-2.0 to 2.0) |
 
 ## Available Tools
 
 | Tool | Description |
 |------|-------------|
+| `tool_save_memory` | Store preferences and context in persistent memory |
+| `tool_delete_memory` | Remove items from memory |
 | `tool_geocode` | Convert addresses to coordinates with bounding box |
 | `tool_places_nearby` | Search Google Places with filters (type, price, keyword) |
 | `tool_place_details` | Get detailed info for a specific place |
-| `tool_save_memory` | Store preferences and location context |
-| `tool_delete_memory` | Remove items from memory |
 | `tool_calculator` | Basic math operations |
 
 ## Architecture
 
 ```
 botty-mcbotface/
-├── main.py              # Gradio interface and conversation loop
+├── main.py              # Gradio interface, settings panel, and conversation loop
 ├── tools.py             # Tool definitions (specs + functions)
 ├── prompts/
-│   └── system.txt       # System prompt for location-aware behavior
+│   └── system.txt       # Default system prompt
 ├── utils/
 │   └── logger.py        # Rotating file logger
 ├── environment.yml      # Conda environment definition
 └── activate-env.sh      # Environment activation script
 ```
-
-### How It Works
-
-1. User message is added to conversation history
-2. LLM responds with text and/or tool calls
-3. For each tool call:
-   - UI shows pending status with tool name
-   - Tool executes (geocode, search, etc.)
-   - Results cached to avoid duplicate API calls
-   - UI updates with completion status
-4. Loop continues until no more tool calls
 
 ## Contributing
 
