@@ -306,8 +306,7 @@ def tool_calculator(app_context, first_number, second_number, operation: str):
     elif operation == "multiply": result = x * y
     elif operation == "divide": result = x / y if y != 0 else None
 
-    yield {"result" : f"⏳ Searching for locations..."}
-    return result
+    yield {"status": f"✅ Result: {result}", "result": result}
 
 
 TOOL_GEOCODE = {
@@ -371,7 +370,7 @@ def tool_geocode(app_context, address: str) -> dict:
     center = {"lat": center_lat, "lng": center_lng}
 
     # Calculate the radius of the bounding box
-    radius = _haversine(center_lat, center_lng, northeast['lat'], northeast['lng'])
+    radius = _haversine(center_lat, center_lng, northeast['lat'], northeast['lng']) * 1000
 
     yield {
         "status" : f"✅ Geocoded `{address}` to center=`({center_lat},{center_lng}), radius={radius}m`.",

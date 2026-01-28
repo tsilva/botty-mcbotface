@@ -45,51 +45,21 @@ def prompt_claude():
     system_prompt_text = load_system_prompt()
     if system_prompt_memory_str: system_prompt_text += f"\n\nHere are the memories the user asked you to remember:\n{system_prompt_memory_str}"
     
-    """
     # Send message to Claude
     model_id = app_context["model_id"]
     max_tokens = app_context["max_tokens"]
     message = client.messages.create(
         model=model_id,
         max_tokens=max_tokens,
-        temperature=0.0, 
+        temperature=0.0,
         tools=TOOLS_SPECS.values(),
         system=[{
-            "type": "text", 
-            "text": system_prompt_text, 
-            "cache_control": {"type": "ephemeral"} # Prompt caching references the entire prompt - tools, system, and messages (in that order) up to and including the block designated with cache_control.
+            "type": "text",
+            "text": system_prompt_text,
+            "cache_control": {"type": "ephemeral"}
         }],
         messages=claude_history
     )
-    """
-
-    import os
-    import requests
-
-    model_id = app_context["model_id"]
-    max_tokens = app_context["max_tokens"]
-    OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-    try:
-        response = requests.post(
-            url="https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json"
-            },
-            data=json.dumps({
-                "model": "openrouter/auto",
-                #"tools": TOOLS_SPECS.values(),
-                # TODO: SYSTEM PROMPT
-                #max_tokens=max_tokens,
-                #temperature=0.0, 
-                "messages": claude_history
-            })
-        ).json()
-    except Exception as e:
-        print(f"Error calling OpenRouter API: {str(e)}")
-        return "Sorry, an error occurred while calling the OpenRouter API."
-
-    message = response["choices"][0]["message"]["content"]
 
     return message
 
@@ -126,7 +96,7 @@ def chatbot(message, history):
                     # Store in claude history
                     claude_history.append({
                         "role": "assistant",
-                        "content": content.text
+                        "content": [{"type": "text", "text": content.text}]
                     })
                 elif content.type == "tool_use":
                     tool_id = content.id
