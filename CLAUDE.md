@@ -23,7 +23,7 @@ The script checks for Miniconda installation, creates the environment from `envi
 
 **Required API Keys** (in `.env`):
 - `GOOGLE_MAPS_API_KEY` - For geocoding, place search, and place details
-- `ANTHROPIC_API_KEY` - For Claude AI model access
+- `OPENROUTER_API_KEY` - For Claude AI model access
 - `OPENROUTER_API_KEY` - (Optional) Alternative LLM provider currently used in code
 
 ## Running the Application

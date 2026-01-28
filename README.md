@@ -2,7 +2,7 @@
 title: botty-mcbotface
 app_file: main.py
 sdk: gradio
-sdk_version: 5.12.0
+sdk_version: 6.5.0
 license: mit
 emoji: 😻
 colorTo: blue
@@ -15,7 +15,7 @@ short_description: A location-aware AI chatbot with memory and integrated tools
 
   [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
   [![Python](https://img.shields.io/badge/Python-3.11-3776AB.svg)](https://python.org)
-  [![Gradio](https://img.shields.io/badge/Gradio-5.12.0-orange.svg)](https://gradio.app)
+  [![Gradio](https://img.shields.io/badge/Gradio-6.5.0-orange.svg)](https://gradio.app)
   [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Spaces-yellow)](https://huggingface.co/spaces/tsilva/botty-mcbotface)
 
   **🗺️ Your AI travel buddy that remembers your preferences and knows its way around Google Maps**
@@ -74,7 +74,7 @@ Create a `.env` file with your API keys:
 
 ```bash
 GOOGLE_MAPS_API_KEY=your_google_maps_key
-ANTHROPIC_API_KEY=your_anthropic_key
+OPENROUTER_API_KEY=your_anthropic_key
 OPENROUTER_API_KEY=your_openrouter_key  # Optional alternative
 ```
 

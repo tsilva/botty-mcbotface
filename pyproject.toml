@@ -7,4 +7,7 @@ name = "botty-mcbotface"
 version = "0.1.0"
 description = "---"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = ["gradio>=6.5.0", "openai", "python-dotenv"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["main.py"]

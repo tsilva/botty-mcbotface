@@ -206,7 +206,6 @@ with gr.Blocks(fill_height=True) as demo:
             gr.Markdown("<center><h1>Botty McBotface</h1></center>")
             gr.ChatInterface(
                 fn=chatbot,
-                type="messages",
                 description="Botty McBotFace is really just another chatbot.",
                 additional_outputs=[memory],
             )
