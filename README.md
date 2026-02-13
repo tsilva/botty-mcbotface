@@ -18,7 +18,7 @@ short_description: A configurable AI chat sandbox with tools and memory
   [![Gradio](https://img.shields.io/badge/Gradio-6.5.0-orange.svg)](https://gradio.app)
   [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Spaces-yellow)](https://huggingface.co/spaces/tsilva/botty-mcbotface)
 
-  **A configurable AI chat sandbox with toggleable tools, memory, and LLM parameter controls**
+  **🤖 Gradio-powered AI chatbot with tools and memory 💬**
 
   [Live Demo](https://huggingface.co/spaces/tsilva/botty-mcbotface)
 </div>
