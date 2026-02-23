@@ -11,3 +11,9 @@ dependencies = ["gradio>=6.5.0", "openai", "python-dotenv"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["main.py"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
