@@ -10,6 +10,12 @@ pinned: true
 short_description: A configurable AI chat sandbox with tools and memory
 ---
 
+> [!WARNING]
+> ## Archived
+> This project is archived and no longer maintained.
+>
+> This project has been superseded by [llame](https://github.com/tsilva/llame), which offers an improved experience.
+
 <div align="center">
   <img src="logo.png" alt="chat-sandbox" width="512"/>
 
