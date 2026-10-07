@@ -10,24 +10,26 @@ pinned: true
 short_description: A configurable AI chat sandbox with tools and memory
 ---
 
+<p align="center">
+  <img src="logo.png" alt="chat-sandbox" width="512"/>
+  <br />
+  <!-- repo-tagline:start -->
+  <strong>🤖 Gradio-powered AI chatbot with tools and memory 💬</strong>
+  <!-- repo-tagline:end -->
+</p>
+
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+  [![Python](https://img.shields.io/badge/Python-3.11-3776AB.svg)](https://python.org)
+  [![Gradio](https://img.shields.io/badge/Gradio-6.5.0-orange.svg)](https://gradio.app)
+  [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Spaces-yellow)](https://huggingface.co/spaces/tsilva/botty-mcbotface)
+
+  [Live Demo](https://huggingface.co/spaces/tsilva/botty-mcbotface)
+
 > [!WARNING]
 > ## Archived
 > This project is archived and no longer maintained.
 >
 > This project has been superseded by [llame](https://github.com/tsilva/llame), which offers an improved experience.
-
-<div align="center">
-  <img src="logo.png" alt="chat-sandbox" width="512"/>
-
-  [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-  [![Python](https://img.shields.io/badge/Python-3.11-3776AB.svg)](https://python.org)
-  [![Gradio](https://img.shields.io/badge/Gradio-6.5.0-orange.svg)](https://gradio.app)
-  [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Spaces-yellow)](https://huggingface.co/spaces/tsilva/botty-mcbotface)
-
-  **🤖 Gradio-powered AI chatbot with tools and memory 💬**
-
-  [Live Demo](https://huggingface.co/spaces/tsilva/botty-mcbotface)
-</div>
 
 ## Overview
 
